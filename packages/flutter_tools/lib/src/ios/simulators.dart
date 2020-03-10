@@ -16,7 +16,6 @@ import '../base/logger.dart';
 import '../base/process.dart';
 import '../base/utils.dart';
 import '../build_info.dart';
-import '../bundle.dart';
 import '../convert.dart';
 import '../device.dart';
 import '../globals.dart' as globals;
@@ -172,7 +171,7 @@ class SimControl {
         throwOnError: true,
       );
     } on ProcessException catch (exception) {
-      throwToolExit('Unable to install $appPath on $deviceId:\n$exception');
+      throwToolExit('Unable to install $appPath on $deviceId. This is sometimes caused by a malformed plist file:\n$exception');
     }
     return result;
   }
@@ -217,7 +216,7 @@ class SimControl {
         throwOnError: true,
       );
     } on ProcessException catch (exception) {
-      throwToolExit('Unable to take screenshot of $deviceId:\n$exception');
+      _logger.printError('Unable to take screenshot of $deviceId:\n$exception');
     }
   }
 }
@@ -327,7 +326,7 @@ class IOSSimulator extends Device {
       final IOSApp iosApp = app;
       await _simControl.install(id, iosApp.simulatorBundlePath);
       return true;
-    } catch (e) {
+    } on Exception {
       return false;
     }
   }
@@ -337,7 +336,7 @@ class IOSSimulator extends Device {
     try {
       await _simControl.uninstall(id, app.id);
       return true;
-    } catch (e) {
+    } on Exception {
       return false;
     }
   }
@@ -431,7 +430,7 @@ class IOSSimulator extends Device {
       final String bundleIdentifier = globals.plistParser.getValueFromFile(plistPath, PlistParser.kCFBundleIdentifierKey);
 
       await _simControl.launch(id, bundleIdentifier, args);
-    } catch (error) {
+    } on Exception catch (error) {
       globals.printError('$error');
       return LaunchResult.failed();
     }
@@ -447,7 +446,7 @@ class IOSSimulator extends Device {
     try {
       final Uri deviceUri = await observatoryDiscovery.uri;
       return LaunchResult.succeeded(observatoryUri: deviceUri);
-    } catch (error) {
+    } on Exception catch (error) {
       globals.printError('Error waiting for a debug connection: $error');
       return LaunchResult.failed();
     } finally {
@@ -456,20 +455,13 @@ class IOSSimulator extends Device {
   }
 
   Future<void> _setupUpdatedApplicationBundle(covariant BuildableIOSApp app, BuildInfo buildInfo, String mainPath) async {
-    await sideloadUpdatedAssetsForInstalledApplicationBundle(buildInfo, mainPath);
-
     // Step 1: Build the Xcode project.
     // The build mode for the simulator is always debug.
-
-    final BuildInfo debugBuildInfo = BuildInfo(BuildMode.debug, buildInfo.flavor,
-        trackWidgetCreation: buildInfo.trackWidgetCreation,
-        extraFrontEndOptions: buildInfo.extraFrontEndOptions,
-        extraGenSnapshotOptions: buildInfo.extraGenSnapshotOptions,
-        treeShakeIcons: buildInfo.treeShakeIcons);
+    assert(buildInfo.isDebug);
 
     final XcodeBuildResult buildResult = await buildXcodeProject(
       app: app,
-      buildInfo: debugBuildInfo,
+      buildInfo: buildInfo,
       targetOverride: mainPath,
       buildForDevice: false,
     );
@@ -486,19 +478,6 @@ class IOSSimulator extends Device {
 
     // Step 3: Install the updated bundle to the simulator.
     await _simControl.install(id, globals.fs.path.absolute(bundle.path));
-  }
-
-  @visibleForTesting
-  Future<void> sideloadUpdatedAssetsForInstalledApplicationBundle(BuildInfo buildInfo, String mainPath) {
-    // Run compiler to produce kernel file for the application.
-    return BundleBuilder().build(
-      platform: TargetPlatform.ios,
-      mainPath: mainPath,
-      precompiledSnapshot: false,
-      buildMode: buildInfo.mode,
-      trackWidgetCreation: buildInfo.trackWidgetCreation,
-      treeShakeIcons: false,
-    );
   }
 
   @override
