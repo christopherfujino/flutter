@@ -4,24 +4,28 @@
          "name":"Linux analyze",
          "repo":"flutter",
          "task_name":"linux_analyze",
+         "recipe": "flutter/flutter",
          "enabled":true
       },
       {
          "name":"Linux build_aar_module_test",
          "repo":"flutter",
          "task_name":"linux_build_aar_module_test",
+         "recipe":"devicelab/devicelab_drone",
          "enabled":true,
          "run_if": ["dev/**", "packages/flutter_tools/**", "bin/**"]
       },
       {
          "name":"Linux customer_testing",
          "repo":"flutter",
+         "recipe": "flutter/flutter",
          "task_name":"linux_customer_testing",
          "enabled":true
       },
       {
          "name":"Linux build_tests",
          "repo":"flutter",
+         "recipe": "flutter/flutter",
          "task_name":"linux_build_tests",
          "enabled":true
       },
@@ -29,6 +33,7 @@
          "name":"Linux docs",
          "repo":"flutter",
          "task_name":"linux_docs",
+         "recipe": "flutter/flutter",
          "enabled":true,
          "run_if":["dev/", "packages/flutter/", "packages/flutter_test/", "packages/flutter_drive/", "packages/flutter_localizations/", "bin/"]
       },
@@ -36,6 +41,7 @@
          "name":"Linux framework_tests",
          "repo":"flutter",
          "task_name":"linux_framework_tests",
+         "recipe": "flutter/flutter",
          "enabled":true,
          "run_if":["dev/", "packages/flutter/", "packages/flutter_test/", "packages/flutter_goldens/", "packages/flutter_tools/lib/src/test/", "bin/"]
       },
@@ -43,30 +49,35 @@
          "name":"Linux firebase_abstract_method_smoke_test",
          "repo":"flutter",
          "task_name":"linux_firebase_abstract_method_smoke_test",
+         "recipe":"firebaselab/firebaselab",
          "enabled":true
       },
       {
          "name":"Linux firebase_android_embedding_v2_smoke_test",
          "repo":"flutter",
          "task_name":"linux_firebase_android_embedding_v2_smoke_test",
+         "recipe":"firebaselab/firebaselab",
          "enabled":true
       },
       {
          "name":"Linux firebase_release_smoke_test",
          "repo":"flutter",
          "task_name":"linux_firebase_release_smoke_test",
+         "recipe":"firebaselab/firebaselab",
          "enabled":true
       },
       {
          "name":"Linux fuchsia_precache",
          "repo":"flutter",
          "task_name":"linux_fuchsia_precache",
+         "recipe":"flutter/flutter",
          "enabled":true
       },
       {
         "name":"Linux gradle_desugar_classes_test",
         "repo":"flutter",
         "task_name":"linux_gradle_desugar_classes_test",
+        "recipe":"devicelab/devicelab_drone",
         "enabled":true,
         "run_if":["dev/**", "bin/**"]
       },
@@ -74,6 +85,7 @@
          "name":"Linux gradle_non_android_plugin_test",
          "repo":"flutter",
          "task_name":"linux_gradle_non_android_plugin_test",
+         "recipe":"devicelab/devicelab_drone",
          "enabled":true,
          "run_if": ["dev/**", "packages/flutter_tools/**", "bin/**"]
       },
