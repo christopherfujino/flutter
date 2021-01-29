@@ -1,4 +1,5 @@
 {
+   "release_channel": "master",
    "builders": [
       {
          "name": "Linux analyze",
