@@ -241,7 +241,7 @@ void main() {
       Platform: () => fakePlatform,
     });
 
-    testUsingContext('fetchLatestVersion throws on unsupported upstream remote with FLUTTER_GIT_URL unset', () async {
+    testUsingContext('fetchLatestVersion throws toolExit on nonstandard upstream remote with FLUTTER_GIT_URL unset', () async {
       final FakeFlutterVersion flutterVersion = FakeFlutterVersion(
         channel: 'dev',
         repositoryUrl: 'https://githubmirror.com/flutter',
@@ -255,7 +255,7 @@ void main() {
         err = e;
       }
       expect(err, isNotNull);
-      expect(err.toString(), contains('Your local copy of Flutter is tracking an unsupported remote'));
+      expect(err.toString(), contains('Your local copy of Flutter is tracking a nonstandard remote'));
       expect(err.toString(), contains('"FLUTTER_GIT_URL" to "https://githubmirror.com/flutter"'));
       expect(err.toString(), contains('git branch --set-upstream-to=origin/dev'));
       expect(err.toString(), contains('if remote "origin" exists in flutter'));
@@ -264,10 +264,16 @@ void main() {
       Platform: () => fakePlatform,
     });
 
-    testUsingContext('fetchLatestVersion does not throw on unsupported upstream remote with FLUTTER_GIT_URL set', () async {
+    testUsingContext('fetchLatestVersion does not throw toolExit on nonstandard upstream remote with FLUTTER_GIT_URL set', () async {
       final FakeFlutterVersion flutterVersion = FakeFlutterVersion(repositoryUrl: 'https://githubmirror.com/flutter');
 
-      await realCommandRunner.fetchLatestVersion(localVersion: flutterVersion);
+      ToolExit err;
+      try {
+        await realCommandRunner.fetchLatestVersion(localVersion: flutterVersion);
+      } on ToolExit catch (e) {
+        err = e;
+      }
+      expect(err, isNull);
       expect(processManager, hasNoRemainingExpectations);
     }, overrides: <Type, Generator> {
       Platform: () => fakePlatform..environment = Map<String, String>.unmodifiable(<String, String> {

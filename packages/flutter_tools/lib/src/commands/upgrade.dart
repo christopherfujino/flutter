@@ -233,10 +233,10 @@ class UpgradeCommandRunner {
   /// from `_flutterGit`, upgrading would not necessarily fetch the actual
   /// upstream updates from the latter, which is used for version check and
   /// inform users about the update in the first place.
-  void checkSupportedRemote(FlutterVersion localVersion) {
+  void checkStandardRemote(FlutterVersion localVersion) {
     if (localVersion.repositoryUrl != _flutterGit) {
       throwToolExit(
-        'Your local copy of Flutter is tracking an unsupported remote '
+        'Your local copy of Flutter is tracking a nonstandard remote '
         '"${localVersion.repositoryUrl}".\n'
         'To use the unofficial remote, set the environment variable '
         '"FLUTTER_GIT_URL" to "${localVersion.repositoryUrl}",\n'
@@ -294,7 +294,7 @@ class UpgradeCommandRunner {
         throwToolExit(errorString);
       }
     }
-    checkSupportedRemote(localVersion);
+    checkStandardRemote(localVersion);
     return FlutterVersion(workingDirectory: workingDirectory, frameworkRevision: revision);
   }
 
