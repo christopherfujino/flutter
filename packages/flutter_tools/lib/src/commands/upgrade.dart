@@ -276,9 +276,9 @@ class UpgradeCommandRunner {
         throwToolExit(
           'Unable to upgrade Flutter: HEAD does not point to a branch(Are you '
           'in a detached HEAD state?).\n'
-          'Use "git" to checkout an official branch '
+          'Use "flutter channel" to switch to an official channel '
           '("stable", "beta", "dev", or "master") and retry, for example:\n'
-          '  git checkout stable'
+          '  flutter channel stable\n\n'
         );
       } else if (errorString.contains('fatal: no upstream configured for branch')) {
         // Get the name of local branch to show in error message
