@@ -279,6 +279,8 @@ class UpgradeCommandRunner {
           'Use "flutter channel" to switch to an official channel '
           '("stable", "beta", "dev", or "master") and retry, for example:\n'
           '  flutter channel stable\n\n'
+          'If you are okay with losing local changes you made to the SDK, re-install '
+          'Flutter by going to https://flutter.dev/docs/get-started/install.'
         );
       } else if (errorString.contains('fatal: no upstream configured for branch')) {
         // Get the name of local branch to show in error message
@@ -292,7 +294,10 @@ class UpgradeCommandRunner {
           'Unable to upgrade Flutter: no upstream repository configured for branch.\n'
           'Run "git remote add origin https://github.com/flutter/flutter" and '
           '"git branch --set-upstream-to=origin/$localBranch" if remote '
-          '"origin" exists in $workingDirectory');
+          '"origin" exists in $workingDirectory.\n\n'
+          'If you are okay with losing local changes you made to the SDK, re-install '
+          'Flutter by going to https://flutter.dev/docs/get-started/install.'
+        );
       } else {
         throwToolExit(errorString);
       }
