@@ -247,8 +247,8 @@ class UpgradeCommandRunner {
           '"${localVersion.repositoryUrl}" but "FLUTTER_GIT_URL" is set to "$_flutterGit."\n'
           'Either remove "FLUTTER_GIT_URL from the environment or set "FLUTTER_GIT_URL" '
           'to "${localVersion.repositoryUrl}", and retry.\n\n'
-          'If you are okay with losing local changes you made to the SDK, re-install '
-          'Flutter by going to https://flutter.dev/docs/get-started/install.'
+          'As an alternative, if you are okay with losing local changes you made '
+          'to the SDK, re-install Flutter by going to https://flutter.dev/docs/get-started/install.'
         );
       } else {
         // Inform that the user has to either set the environment variable, or
@@ -263,8 +263,8 @@ class UpgradeCommandRunner {
           '"https://github.com/flutter/flutter.git", and retry, for example, to change '
           'the url of the remote "origin", run:\n\n'
           '      git remote set-url origin https://github.com/flutter/flutter.git\n\n'
-          'If you are okay with losing local changes you made to the SDK, re-install '
-          'Flutter by going to https://flutter.dev/docs/get-started/install.'
+          'As an alternative, if you are okay with losing local changes you made '
+          'to the SDK, re-install Flutter by going to https://flutter.dev/docs/get-started/install.'
         );
       }
     }
@@ -309,8 +309,8 @@ class UpgradeCommandRunner {
           'Use "flutter channel" to switch to an official channel '
           '("stable", "beta", "dev", or "master") and retry, for example:\n'
           '  flutter channel stable\n\n'
-          'If you are okay with losing local changes you made to the SDK, re-install '
-          'Flutter by going to https://flutter.dev/docs/get-started/install.'
+          'As an alternative, if you are okay with losing local changes you made '
+          'to the SDK, re-install Flutter by going to https://flutter.dev/docs/get-started/install.'
         );
       } else if (errorString.contains('fatal: no upstream configured for branch')) {
         // Get the name of local branch to show in error message
@@ -325,8 +325,8 @@ class UpgradeCommandRunner {
           'Run "git remote add origin https://github.com/flutter/flutter.git" and '
           '"git branch --set-upstream-to=origin/$localBranch" if remote '
           '"origin" exists in $workingDirectory.\n\n'
-          'If you are okay with losing local changes you made to the SDK, re-install '
-          'Flutter by going to https://flutter.dev/docs/get-started/install.'
+          'As an alternative, if you are okay with losing local changes you made '
+          'to the SDK, re-install Flutter by going to https://flutter.dev/docs/get-started/install.'
         );
       } else {
         throwToolExit(errorString);
