@@ -322,7 +322,7 @@ class UpgradeCommandRunner {
         }
         throwToolExit(
           'Unable to upgrade Flutter: no upstream repository configured for branch.\n'
-          'Run "git remote add origin https://github.com/flutter/flutter" and '
+          'Run "git remote add origin https://github.com/flutter/flutter.git" and '
           '"git branch --set-upstream-to=origin/$localBranch" if remote '
           '"origin" exists in $workingDirectory.\n\n'
           'If you are okay with losing local changes you made to the SDK, re-install '
