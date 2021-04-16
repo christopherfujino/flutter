@@ -244,8 +244,8 @@ class UpgradeCommandRunner {
         // tracking remote to continue.
         throwToolExit(
           'Unable to upgrade Flutter: The Flutter SDK is tracking '
-          '"${localVersion.repositoryUrl}" but "FLUTTER_GIT_URL" is set to "$_flutterGit."\n'
-          'Either remove "FLUTTER_GIT_URL from the environment or set "FLUTTER_GIT_URL" '
+          '"${localVersion.repositoryUrl}" but "FLUTTER_GIT_URL" is set to "$_flutterGit".\n'
+          'Either remove "FLUTTER_GIT_URL" from the environment or set "FLUTTER_GIT_URL" '
           'to "${localVersion.repositoryUrl}", and retry.\n\n'
           'As an alternative, if you are okay with losing local changes you made '
           'to the SDK, re-install Flutter by going to https://flutter.dev/docs/get-started/install.'
@@ -307,7 +307,7 @@ class UpgradeCommandRunner {
           'Unable to upgrade Flutter: HEAD does not point to a branch(Are you '
           'in a detached HEAD state?).\n'
           'Use "flutter channel" to switch to an official channel '
-          '("stable", "beta", "dev", or "master") and retry, for example:\n'
+          '("stable", "beta", "dev", or "master") and retry, for example:\n\n'
           '  flutter channel stable\n\n'
           'As an alternative, if you are okay with losing local changes you made '
           'to the SDK, re-install Flutter by going to https://flutter.dev/docs/get-started/install.'
@@ -321,7 +321,7 @@ class UpgradeCommandRunner {
           throwToolExit(e.toString());
         }
         throwToolExit(
-          'Unable to upgrade Flutter: no upstream repository configured for branch.\n'
+          'Unable to upgrade Flutter: No upstream repository configured for branch.\n'
           'Run "git remote add origin https://github.com/flutter/flutter.git" and '
           '"git branch --set-upstream-to=origin/$localBranch" if remote '
           '"origin" exists in $workingDirectory.\n\n'

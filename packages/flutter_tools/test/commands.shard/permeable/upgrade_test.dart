@@ -233,7 +233,7 @@ void main() {
         err = e;
       }
       expect(err, isNotNull);
-      expect(err.toString(), contains('Unable to upgrade Flutter: no upstream repository configured for branch.'));
+      expect(err.toString(), contains('Unable to upgrade Flutter: No upstream repository configured for branch.'));
       // FakeFlutterVersion.getBranchName is hardcoded to 'master'
       expect(err.toString(), contains('git branch --set-upstream-to=origin/master'));
       expect(err.toString(), contains('if remote "origin" exists in /src/flutter'));
