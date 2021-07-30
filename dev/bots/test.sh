@@ -34,7 +34,7 @@ function follow_links() (
 
 PROG_NAME="$(follow_links "${BASH_SOURCE[0]}")"
 BIN_DIR="$(cd "${PROG_NAME%/*}" ; pwd -P)"
-REPO_DIR="$BIN_DIR/../../.."
+REPO_DIR="$BIN_DIR/../.."
 DART_BIN="$REPO_DIR/bin/dart"
 
 "$DART_BIN" --enable-asserts "$REPO_DIR/dev/bots/test.dart"
