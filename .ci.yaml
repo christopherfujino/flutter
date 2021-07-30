@@ -12,6 +12,10 @@ targets:
   - name: Linux analyze
     builder: Linux analyze
     properties:
+      posix_entrypoint: >
+        ["bin/cache/dart", "--enable-asserts", "dev/bots/dart.dart"]
+      windows_entrypoint: >
+        ["bin\cache\dart.bat", "--enable-asserts", "dev\bots\dart.dart"]
       tags: >
         ["framework","hostonly"]
     scheduler: luci
