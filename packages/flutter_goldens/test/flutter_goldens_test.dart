@@ -157,7 +157,7 @@ void main() {
       );
     });
 
-    test('throws for error state from init', () async {
+    test('parses shard & subshard from env writes to keys.json', () async {
       platform = FakePlatform(
         environment: <String, String>{
           'FLUTTER_ROOT': _kFlutterRoot,
