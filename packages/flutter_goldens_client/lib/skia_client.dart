@@ -366,6 +366,26 @@ class SkiaGoldClient {
     }
   }
 
+  /// A mapping from LUCI "OS" env var name to Flutter shard prefix name.
+  static const Map<String, String> _osMapping = <String, String>{
+    'darwin': 'Mac',
+    'linux': 'Linux',
+    'win': 'Windows',
+  };
+
+  String get _shardName {
+    final String? os = _osMapping[platform.environment['OS']];
+    if (os == null) {
+      throw Exception('Expected the environment variable "OS" to be set!');
+    }
+    final String shard = platform.environment['SHARD']!;
+    final String? subShard = platform.environment['SUBSHARD'];
+    if (subShard?.isEmpty ?? false) {
+      return '$os $shard';
+    }
+    return '$os ${shard}_$subShard';
+  }
+
   /// Returns a JSON String with keys value pairs used to uniquely identify the
   /// configuration that generated the given golden file.
   ///
@@ -376,6 +396,7 @@ class SkiaGoldClient {
     final Map<String, dynamic> keys = <String, dynamic>{
       'Platform' : platform.operatingSystem,
       'CI' : 'luci',
+      'Shard': _shardName,
     };
     if (platform.environment[_kTestBrowserKey] != null) {
       keys['Browser'] = platform.environment[_kTestBrowserKey];

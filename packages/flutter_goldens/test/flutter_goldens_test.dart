@@ -113,6 +113,10 @@ void main() {
         environment: <String, String>{
           'FLUTTER_ROOT': _kFlutterRoot,
           'GOLDCTL' : 'goldctl',
+          // LUCI populated env var, probably from `uname`
+          'OS': 'darwin',
+          'SHARD': 'web_canvaskit_tests',
+          'SUBSHARD': '7_last',
         },
         operatingSystem: 'macos'
       );
@@ -151,6 +155,52 @@ void main() {
         skiaClient.imgtestInit(),
         throwsException,
       );
+    });
+
+    test('throws for error state from init', () async {
+      platform = FakePlatform(
+        environment: <String, String>{
+          'FLUTTER_ROOT': _kFlutterRoot,
+          'GOLDCTL' : 'goldctl',
+          // LUCI populated env var, probably from `uname`
+          'OS': 'darwin',
+          'SHARD': 'web_canvaskit_tests',
+          'SUBSHARD': '7_last',
+        },
+        operatingSystem: 'macos'
+      );
+
+      skiaClient = SkiaGoldClient(
+        workDirectory,
+        fs: fs,
+        process: process,
+        platform: platform,
+        httpClient: fakeHttpClient,
+      );
+
+      const RunInvocation gitInvocation = RunInvocation(
+        <String>['git', 'rev-parse', 'HEAD'],
+        '/flutter',
+      );
+      const RunInvocation goldctlInvocation = RunInvocation(
+        <String>[
+          'goldctl',
+          'imgtest', 'init',
+          '--instance', 'flutter',
+          '--work-dir', '/workDirectory/temp',
+          '--commit', '12345678',
+          '--keys-file', '/workDirectory/keys.json',
+          '--failure-file', '/workDirectory/failures.json',
+          '--passfail',
+        ],
+        null,
+      );
+      process.processResults[gitInvocation] = ProcessResult(12345678, 0, '12345678', '');
+      process.processResults[goldctlInvocation] = ProcessResult(123, 0, 'success', '');
+
+      await skiaClient.imgtestInit();
+      final File keysFile = workDirectory.childFile('keys.json');
+      expect(keysFile.readAsStringSync(), contains('"Shard":"Mac web_canvaskit_tests_7_last"'));
     });
 
     test('throws for error state from imgtestAdd', () {
