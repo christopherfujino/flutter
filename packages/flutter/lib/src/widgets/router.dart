@@ -73,6 +73,46 @@ class RouteInformation {
   final Object? state;
 }
 
+/// A convenient bundle to configure a [Router] widget.
+///
+/// To configure a [Router] widget, one needs to provide several delegates,
+/// [RouteInformationProvider], [RouteInformationParser], [RouterDelegate],
+/// and [BackButtonDispatcher]. This abstract class provides way to bundle these
+/// delegates into a single object to configure a [Router].
+///
+/// The [routerDelegate] must not be null. The [backButtonDispatcher],
+/// [routeInformationProvider], and [routeInformationProvider] are optional.
+///
+/// The [routeInformationProvider] and [routeInformationParser] must
+/// both be provided or not provided.
+class RouterConfig<T> {
+  /// Creates a [RouterConfig].
+  ///
+  /// The [routerDelegate] must not be null. The [backButtonDispatcher],
+  /// [routeInformationProvider], and [routeInformationParser] are optional.
+  ///
+  /// The [routeInformationProvider] and [routeInformationParser] must
+  /// both be provided or not provided.
+  const RouterConfig({
+    this.routeInformationProvider,
+    this.routeInformationParser,
+    required this.routerDelegate,
+    this.backButtonDispatcher,
+  }) : assert((routeInformationProvider == null) == (routeInformationParser == null));
+
+  /// The [RouteInformationProvider] that is used to configure the [Router].
+  final RouteInformationProvider? routeInformationProvider;
+
+  /// The [RouteInformationParser] that is used to configure the [Router].
+  final RouteInformationParser<T>? routeInformationParser;
+
+  /// The [RouterDelegate] that is used to configure the [Router].
+  final RouterDelegate<T> routerDelegate;
+
+  /// The [BackButtonDispatcher] that is used to configure the [Router].
+  final BackButtonDispatcher? backButtonDispatcher;
+}
+
 /// The dispatcher for opening and closing pages of an application.
 ///
 /// This widget listens for routing information from the operating system (e.g.
@@ -275,8 +315,8 @@ class Router<T> extends StatefulWidget {
   /// router does not depend on route information. A common example is a sub router
   /// that builds its content completely based on the app state.
   ///
-  /// If the [routeInformationProvider] or [restorationScopeId] is not null, then
-  /// [routeInformationParser] must also not be null.
+  /// The [routeInformationProvider] and [routeInformationParser] must
+  /// both be provided or not provided.
   ///
   /// The [routerDelegate] must not be null.
   const Router({
@@ -286,11 +326,38 @@ class Router<T> extends StatefulWidget {
     required this.routerDelegate,
     this.backButtonDispatcher,
     this.restorationScopeId,
-  })  : assert(
-          (routeInformationProvider == null && restorationScopeId == null) || routeInformationParser != null,
-          'A routeInformationParser must be provided when a routeInformationProvider or a restorationId is specified.'
-        ),
-        assert(routerDelegate != null);
+  }) : assert(
+         routeInformationProvider == null || routeInformationParser != null,
+         'A routeInformationParser must be provided when a routeInformationProvider is specified.',
+       ),
+       assert(routerDelegate != null);
+
+  /// Creates a router with a [RouterConfig].
+  ///
+  /// The [RouterConfig.routeInformationProvider] and
+  /// [RouterConfig.routeInformationParser] can be null if this router does not
+  /// depend on route information. A common example is a sub router that builds
+  /// its content completely based on the app state.
+  ///
+  /// If the [RouterConfig.routeInformationProvider] is not null, then
+  /// [RouterConfig.routeInformationParser] must also not be
+  /// null.
+  ///
+  /// The [RouterConfig.routerDelegate] must not be null.
+  factory Router.withConfig({
+    Key? key,
+    required RouterConfig<T> config,
+    String? restorationScopeId,
+  }) {
+    return Router<T>(
+      key: key,
+      routeInformationProvider: config.routeInformationProvider,
+      routeInformationParser: config.routeInformationParser,
+      routerDelegate: config.routerDelegate,
+      backButtonDispatcher: config.backButtonDispatcher,
+      restorationScopeId: restorationScopeId,
+    );
+  }
 
   /// The route information provider for the router.
   ///
@@ -299,8 +366,8 @@ class Router<T> extends StatefulWidget {
   /// it notifies.
   ///
   /// This can be null if this router does not rely on the route information
-  /// to build its content. In such case, the [routeInformationParser] can also be
-  /// null.
+  /// to build its content. In such case, the [routeInformationParser] must also
+  /// be null.
   final RouteInformationProvider? routeInformationProvider;
 
   /// The route information parser for the router.
@@ -511,6 +578,7 @@ class _RouterState<T> extends State<Router<T>> with RestorationMixin {
   void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
     registerForRestoration(_routeInformation, 'route');
     if (_routeInformation.value != null) {
+      assert(widget.routeInformationParser != null);
       _processRouteInformation(_routeInformation.value!, () => widget.routerDelegate.setRestoredRoutePath);
     } else if (widget.routeInformationProvider != null) {
       _processRouteInformation(widget.routeInformationProvider!.value, () => widget.routerDelegate.setInitialRoutePath);
@@ -520,8 +588,9 @@ class _RouterState<T> extends State<Router<T>> with RestorationMixin {
   bool _routeInformationReportingTaskScheduled = false;
 
   void _scheduleRouteInformationReportingTask() {
-    if (_routeInformationReportingTaskScheduled || widget.routeInformationProvider == null)
+    if (_routeInformationReportingTaskScheduled || widget.routeInformationProvider == null) {
       return;
+    }
     assert(_currentIntentionToReport != null);
     _routeInformationReportingTaskScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback(_reportRouteInformation);
@@ -541,8 +610,9 @@ class _RouterState<T> extends State<Router<T>> with RestorationMixin {
 
   RouteInformation? _retrieveNewRouteInformation() {
     final T? configuration = widget.routerDelegate.currentConfiguration;
-    if (configuration == null)
+    if (configuration == null) {
       return null;
+    }
     return widget.routeInformationParser?.restoreRouteInformation(configuration);
   }
 
@@ -780,8 +850,9 @@ class _CallbackHookProvider<T> {
   @protected
   @pragma('vm:notify-debugger-on-exception')
   T invokeCallback(T defaultValue) {
-    if (_callbacks.isEmpty)
+    if (_callbacks.isEmpty) {
       return defaultValue;
+    }
     try {
       return _callbacks.single();
     } catch (exception, stack) {
@@ -849,8 +920,9 @@ abstract class BackButtonDispatcher extends _CallbackHookProvider<Future<bool>> 
 
       Future<bool> notifyNextChild(bool result) {
         // If the previous child handles the callback, we return the result.
-        if (result)
+        if (result) {
           return SynchronousFuture<bool>(result);
+        }
         // If the previous child did not handle the callback, we ask the next
         // child to handle the it.
         if (childIndex > 0) {
@@ -947,16 +1019,18 @@ class RootBackButtonDispatcher extends BackButtonDispatcher with WidgetsBindingO
 
   @override
   void addCallback(ValueGetter<Future<bool>> callback) {
-    if (!hasCallbacks)
+    if (!hasCallbacks) {
       WidgetsBinding.instance.addObserver(this);
+    }
     super.addCallback(callback);
   }
 
   @override
   void removeCallback(ValueGetter<Future<bool>> callback) {
     super.removeCallback(callback);
-    if (!hasCallbacks)
+    if (!hasCallbacks) {
       WidgetsBinding.instance.removeObserver(this);
+    }
   }
 
   @override
@@ -1012,8 +1086,9 @@ class ChildBackButtonDispatcher extends BackButtonDispatcher {
   @override
   void removeCallback(ValueGetter<Future<bool>> callback) {
     super.removeCallback(callback);
-    if (!hasCallbacks)
+    if (!hasCallbacks) {
       parent.forget(this);
+    }
   }
 }
 
@@ -1380,8 +1455,9 @@ class PlatformRouteInformationProvider extends RouteInformationProvider with Wid
   RouteInformation _valueInEngine = RouteInformation(location: WidgetsBinding.instance.platformDispatcher.defaultRouteName);
 
   void _platformReportsNewRouteInformation(RouteInformation routeInformation) {
-    if (_value == routeInformation)
+    if (_value == routeInformation) {
       return;
+    }
     _value = routeInformation;
     _valueInEngine = routeInformation;
     notifyListeners();
@@ -1389,16 +1465,18 @@ class PlatformRouteInformationProvider extends RouteInformationProvider with Wid
 
   @override
   void addListener(VoidCallback listener) {
-    if (!hasListeners)
+    if (!hasListeners) {
       WidgetsBinding.instance.addObserver(this);
+    }
     super.addListener(listener);
   }
 
   @override
   void removeListener(VoidCallback listener) {
     super.removeListener(listener);
-    if (!hasListeners)
+    if (!hasListeners) {
       WidgetsBinding.instance.removeObserver(this);
+    }
   }
 
   @override
@@ -1407,8 +1485,9 @@ class PlatformRouteInformationProvider extends RouteInformationProvider with Wid
     // will be added and removed in a coherent fashion such that when the object
     // is no longer being used, there's no listener, and so it will get garbage
     // collected.
-    if (hasListeners)
+    if (hasListeners) {
       WidgetsBinding.instance.removeObserver(this);
+    }
     super.dispose();
   }
 
@@ -1445,8 +1524,9 @@ mixin PopNavigatorRouterDelegateMixin<T> on RouterDelegate<T> {
   @override
   Future<bool> popRoute() {
     final NavigatorState? navigator = navigatorKey?.currentState;
-    if (navigator == null)
+    if (navigator == null) {
       return SynchronousFuture<bool>(false);
+    }
     return navigator.maybePop();
   }
 }

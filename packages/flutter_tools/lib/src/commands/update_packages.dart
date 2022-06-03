@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:meta/meta.dart';
@@ -32,12 +33,15 @@ const Map<String, String> kManuallyPinnedDependencies = <String, String>{
   // Add pinned packages here. Please leave a comment explaining why.
   'archive': '3.1.11', // Breaking changes in 3.2.0, see https://github.com/flutter/flutter/issues/98536
   'flutter_gallery_assets': '1.0.2', // Tests depend on the exact version.
-  'flutter_template_images': '4.0.0', // Must always exactly match flutter_tools template.
+  'flutter_template_images': '4.1.0', // Must always exactly match flutter_tools template.
   // "shelf" is pinned to avoid the performance regression from a reverted
   // feature from https://github.com/dart-lang/shelf/issues/189 . This can be
   // removed when a new major version of shelf is published.
   'shelf': '1.1.4',
   'video_player': '2.2.11',
+  // Could potentially break color scheme tests on upgrade,
+  // so pin and manually update as needed.
+  'material_color_utilities': '0.1.5',
 };
 
 class UpdatePackagesCommand extends FlutterCommand {
@@ -155,15 +159,16 @@ class UpdatePackagesCommand extends FlutterCommand {
   Future<FlutterCommandResult> runCommand() async {
     final List<Directory> packages = runner!.getRepoPackages();
 
-    final bool forceUpgrade = boolArg('force-upgrade');
-    final bool isPrintPaths = boolArg('paths');
-    final bool isPrintTransitiveClosure = boolArg('transitive-closure');
-    final bool isVerifyOnly = boolArg('verify-only');
-    final bool isConsumerOnly = boolArg('consumer-only');
-    final bool offline = boolArg('offline');
+    final bool forceUpgrade = boolArgDeprecated('force-upgrade');
+    final bool isPrintPaths = boolArgDeprecated('paths');
+    final bool isPrintTransitiveClosure = boolArgDeprecated('transitive-closure');
+    final bool isVerifyOnly = boolArgDeprecated('verify-only');
+    final bool isConsumerOnly = boolArgDeprecated('consumer-only');
+    final bool offline = boolArgDeprecated('offline');
+    final bool doUpgrade = forceUpgrade || isPrintPaths || isPrintTransitiveClosure;
+
     final String? describePackage = stringArg('describe-package');
-    final bool diagnoseDowngrades = boolArg('diagnose-downgrades');
-    final bool doUpgrade = forceUpgrade || isPrintPaths || isPrintTransitiveClosure || diagnoseDowngrades;
+    final bool diagnoseDowngrades = boolArg('diagnose-downgrades')!;
 
     if (doUpgrade && describePackage != null) {
       throwToolExit(
@@ -171,7 +176,7 @@ class UpdatePackagesCommand extends FlutterCommand {
       );
     }
 
-    if (boolArg('crash')) {
+    if (boolArgDeprecated('crash')) {
       throw StateError('test crash please ignore.');
     }
 
@@ -495,7 +500,7 @@ class UpdatePackagesCommand extends FlutterCommand {
       final File fakePackage = _pubspecFor(tempDir);
       fakePackage.createSync();
       fakePackage.writeAsStringSync(
-        _generateFakePubspec(
+        generateFakePubspec(
           dependencies,
           doUpgrade: doUpgrade,
         ),
@@ -518,7 +523,7 @@ class UpdatePackagesCommand extends FlutterCommand {
         context: PubContext.updatePackages,
         directory: tempDir.path,
         upgrade: doUpgrade,
-        offline: boolArg('offline'),
+        offline: boolArgDeprecated('offline'),
         flutterRootOverride: temporaryFlutterSdk?.path,
       );
 
@@ -698,15 +703,15 @@ class UpdatePackagesCommand extends FlutterCommand {
       }
     }
 
-    if (boolArg('transitive-closure')) {
+    if (boolArgDeprecated('transitive-closure')) {
       tree._dependencyTree.forEach((String from, Set<String> to) {
         globals.printStatus('$from -> $to');
       });
       return true;
     }
 
-    if (boolArg('paths')) {
-      showDependencyPaths(from: stringArg('from')!, to: stringArg('to')!, tree: tree);
+    if (boolArgDeprecated('paths')) {
+      showDependencyPaths(from: stringArgDeprecated('from')!, to: stringArgDeprecated('to')!, tree: tree);
       return true;
     }
 
@@ -740,7 +745,7 @@ class UpdatePackagesCommand extends FlutterCommand {
     );
     try {
       // int.tryParse will not accept null, but will convert empty string to null
-      final int? maxJobs = int.tryParse(stringArg('jobs') ?? '');
+      final int? maxJobs = int.tryParse(stringArgDeprecated('jobs') ?? '');
       final TaskQueue<void> queue = TaskQueue<void>(maxJobs: maxJobs);
       for (final Directory dir in packages) {
         unawaited(queue.add(() async {
@@ -1648,9 +1653,15 @@ class PubspecDependency extends PubspecLine {
 
   /// This generates the entry for this dependency for the pubspec.yaml for the
   /// fake package that we'll use to get the version numbers figured out.
+  ///
+  /// When called with [doUpgrade] as [true], the version constrains will be set
+  /// to >= whatever the previous version was. If [doUpgrade] is [false], then
+  /// the previous version is used again as an exact pin.
   void describeForFakePubspec(StringBuffer dependencies, StringBuffer overrides, { bool doUpgrade = true }) {
     final String versionToUse;
-    if (version.isEmpty) {
+    // This should only happen when manually adding new dependencies; otherwise
+    // versions should always be pinned exactly
+    if (version.isEmpty || version == 'any') {
       versionToUse = 'any';
     } else if (doUpgrade) {
       // Must wrap in quotes for Yaml parsing
@@ -1658,7 +1669,7 @@ class PubspecDependency extends PubspecLine {
     } else {
       versionToUse = version;
     }
-    // final versionToUse = useAnyVersion || version.isEmpty ? 'any' : version;
+
     switch (kind) {
       case DependencyKind.unknown:
       case DependencyKind.overridden:
@@ -1698,6 +1709,7 @@ class PubspecDependency extends PubspecLine {
           dependencies.writeln('  $name:');
           dependencies.writeln(lockLine);
         }
+        break;
     }
   }
 
@@ -1716,7 +1728,8 @@ File _pubspecFor(Directory directory) {
 
 /// Generates the source of a fake pubspec.yaml file given a list of
 /// dependencies.
-String _generateFakePubspec(
+@visibleForTesting
+String generateFakePubspec(
   Iterable<PubspecDependency> dependencies, {
   bool doUpgrade = false,
 }) {

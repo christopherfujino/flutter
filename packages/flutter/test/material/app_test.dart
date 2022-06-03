@@ -30,8 +30,9 @@ class StateMarkerState extends State<StateMarker> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.child != null)
+    if (widget.child != null) {
       return widget.child!;
+    }
     return Container();
   }
 }
@@ -1013,6 +1014,110 @@ void main() {
       routeInformationProvider: provider,
       routeInformationParser: SimpleRouteInformationParser(),
       routerDelegate: delegate,
+    ));
+    expect(find.text('initial'), findsOneWidget);
+
+    // Simulate android back button intent.
+    final ByteData message = const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute'));
+    await ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage('flutter/navigation', message, (_) { });
+    await tester.pumpAndSettle();
+    expect(find.text('popped'), findsOneWidget);
+  });
+
+  testWidgets('MaterialApp.router route information parser is optional', (WidgetTester tester) async {
+    final SimpleNavigatorRouterDelegate delegate = SimpleNavigatorRouterDelegate(
+      builder: (BuildContext context, RouteInformation information) {
+        return Text(information.location!);
+      },
+      onPopPage: (Route<void> route, void result, SimpleNavigatorRouterDelegate delegate) {
+        delegate.routeInformation = const RouteInformation(
+          location: 'popped',
+        );
+        return route.didPop(result);
+      },
+    );
+    delegate.routeInformation = const RouteInformation(location: 'initial');
+    await tester.pumpWidget(MaterialApp.router(
+      routerDelegate: delegate,
+    ));
+    expect(find.text('initial'), findsOneWidget);
+
+    // Simulate android back button intent.
+    final ByteData message = const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute'));
+    await ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage('flutter/navigation', message, (_) { });
+    await tester.pumpAndSettle();
+    expect(find.text('popped'), findsOneWidget);
+  });
+
+  testWidgets('MaterialApp.router throw if route information provider is provided but no route information parser', (WidgetTester tester) async {
+    final SimpleNavigatorRouterDelegate delegate = SimpleNavigatorRouterDelegate(
+      builder: (BuildContext context, RouteInformation information) {
+        return Text(information.location!);
+      },
+      onPopPage: (Route<void> route, void result, SimpleNavigatorRouterDelegate delegate) {
+        delegate.routeInformation = const RouteInformation(
+          location: 'popped',
+        );
+        return route.didPop(result);
+      },
+    );
+    delegate.routeInformation = const RouteInformation(location: 'initial');
+    final PlatformRouteInformationProvider provider = PlatformRouteInformationProvider(
+      initialRouteInformation: const RouteInformation(
+        location: 'initial',
+      ),
+    );
+    await tester.pumpWidget(MaterialApp.router(
+      routeInformationProvider: provider,
+      routerDelegate: delegate,
+    ));
+    expect(tester.takeException(), isAssertionError);
+  });
+
+  testWidgets('MaterialApp.router throw if route configuration is provided along with other delegate', (WidgetTester tester) async {
+    final SimpleNavigatorRouterDelegate delegate = SimpleNavigatorRouterDelegate(
+      builder: (BuildContext context, RouteInformation information) {
+        return Text(information.location!);
+      },
+      onPopPage: (Route<void> route, void result, SimpleNavigatorRouterDelegate delegate) {
+        delegate.routeInformation = const RouteInformation(
+          location: 'popped',
+        );
+        return route.didPop(result);
+      },
+    );
+    delegate.routeInformation = const RouteInformation(location: 'initial');
+    final RouterConfig<RouteInformation> routerConfig = RouterConfig<RouteInformation>(routerDelegate: delegate);
+    await tester.pumpWidget(MaterialApp.router(
+      routerDelegate: delegate,
+      routerConfig: routerConfig,
+    ));
+    expect(tester.takeException(), isAssertionError);
+  });
+
+  testWidgets('MaterialApp.router router config works', (WidgetTester tester) async {
+    final RouterConfig<RouteInformation> routerConfig = RouterConfig<RouteInformation>(
+        routeInformationProvider: PlatformRouteInformationProvider(
+          initialRouteInformation: const RouteInformation(
+            location: 'initial',
+          ),
+        ),
+        routeInformationParser: SimpleRouteInformationParser(),
+        routerDelegate: SimpleNavigatorRouterDelegate(
+          builder: (BuildContext context, RouteInformation information) {
+            return Text(information.location!);
+          },
+          onPopPage: (Route<void> route, void result, SimpleNavigatorRouterDelegate delegate) {
+            delegate.routeInformation = const RouteInformation(
+              location: 'popped',
+            );
+            return route.didPop(result);
+          },
+        ),
+        backButtonDispatcher: RootBackButtonDispatcher()
+    );
+    await tester.pumpWidget(MaterialApp.router(
+      routerConfig: routerConfig,
     ));
     expect(find.text('initial'), findsOneWidget);
 
