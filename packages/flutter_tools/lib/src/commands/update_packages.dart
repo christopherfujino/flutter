@@ -168,7 +168,6 @@ class UpdatePackagesCommand extends FlutterCommand {
     final bool doUpgrade = forceUpgrade || isPrintPaths || isPrintTransitiveClosure;
 
     final String? describePackage = stringArg('describe-package');
-    final bool diagnoseDowngrades = boolArg('diagnose-downgrades')!;
 
     if (doUpgrade && describePackage != null) {
       throwToolExit(
@@ -248,14 +247,6 @@ class UpdatePackagesCommand extends FlutterCommand {
         ? PubDependencyTree()
         : null; // object to collect results
     final Directory tempDir = globals.fs.systemTempDirectory.createTempSync('flutter_update_packages.');
-
-    if (diagnoseDowngrades) {
-      await _diagnoseDowngrades(
-        dependencies: explicitDependencies.values,
-        pubspecs: pubspecs,
-      );
-      return FlutterCommandResult.success();
-    }
 
     final PackageConfig packageConfig = await _generateFakePackage(
       tempDir: tempDir,
@@ -559,125 +550,6 @@ class UpdatePackagesCommand extends FlutterCommand {
     } finally {
       tempDir.deleteSync(recursive: true);
     }
-  }
-
-  /// Generate a synthetic Dart package with the given dependencies.
-  Future<void> _diagnoseDowngrades({
-    required Iterable<PubspecDependency> dependencies,
-    required List<PubspecYaml> pubspecs,
-  }) async {
-    // Map of package name to version (either 'any' or a manual pin)
-    final Map<PubspecDependency, String> activeDependencies = <PubspecDependency, String>{};
-    // dependencies that caused a downgrade
-    final Set<PubspecDependency> quarantinedDependencies = <PubspecDependency>{};
-    final Directory tempDir = globals.fs.systemTempDirectory.createTempSync(
-      'flutter_diagnose_downgrades.',
-    );
-    await tempDir.create(recursive: true);
-    final File pubspecYaml = tempDir.childFile('pubspec.yaml');
-    final File pubspecLock = tempDir.childFile('pubspec.lock');
-
-    // Create a synthetic flutter SDK so that transitive flutter SDK
-    // constraints are not affected by this upgrade.
-    final Directory temporaryFlutterSdk = createTemporaryFlutterSdk(
-      globals.logger,
-      globals.fs,
-      globals.fs.directory(Cache.flutterRoot),
-      pubspecs,
-    );
-
-    for (final PubspecDependency candidateDependency in dependencies) {
-      if (candidateDependency.kind != DependencyKind.normal) {
-        continue;
-      }
-      final PubDependencyTree tree = PubDependencyTree();
-      if (kManuallyPinnedDependencies.containsKey(candidateDependency.name)) {
-        activeDependencies[candidateDependency] = kManuallyPinnedDependencies[candidateDependency.name]!;
-      } else {
-        activeDependencies[candidateDependency] = 'any';
-      }
-
-      globals.printStatus(
-        'Adding ${candidateDependency.name}: ${activeDependencies[candidateDependency]} to synthetic package...',
-      );
-      final String pubspecContents = <String>[
-        'name: downgrade_diagnose',
-        'environment:',
-        "  sdk: '>= 2.10.0 <3.0.0'",
-        'dependencies:',
-        for (final MapEntry<PubspecDependency, String> entry in activeDependencies.entries)
-          '  ${entry.key.name}: ${entry.value}',
-      ].join('\n');
-      await pubspecYaml.writeAsString(pubspecContents);
-      if (pubspecLock.existsSync()) {
-        pubspecLock.deleteSync();
-      }
-
-      try {
-        await pub.get(
-          context: PubContext.updatePackages,
-          directory: tempDir.path,
-          upgrade: true,
-          offline: boolArg('offline'),
-          flutterRootOverride: temporaryFlutterSdk.path,
-        );
-      } on ToolExit {
-        globals.printError('Pub solving failed while trying to add ${candidateDependency.name}: ${activeDependencies[candidateDependency.name]}');
-        rethrow;
-      }
-
-      // Fill the tree so we can determine how pub version solved our deps.
-      await pub.batch(
-        <String>['deps', '--style=compact'],
-        context: PubContext.updatePackages,
-        directory: tempDir.path,
-        filter: tree.fill,
-        retry: false, // errors here are usually fatal since we're not hitting the network
-      );
-
-      bool foundDowngrade = false;
-
-      // This will only be logged if downgrades are detected
-      final StringBuffer errorBuffer = StringBuffer();
-      for (final MapEntry<PubspecDependency, String> entry in activeDependencies.entries) {
-        final PubspecDependency originalDependency = dependencies.firstWhere((PubspecDependency dep) => dep.name == entry.key.name);
-        final semver.Version originalVersion = semver.Version.parse(
-          originalDependency.version,
-        );
-        final semver.Version resolvedVersion = semver.Version.parse(
-          tree.versionFor(entry.key.name),
-        );
-        if (originalVersion > resolvedVersion) {
-          errorBuffer.writeln('\t${entry.key.name}: $originalVersion -> $resolvedVersion');
-          foundDowngrade = true;
-        }
-      }
-      if (foundDowngrade) {
-        final String foundPackage = candidateDependency.name;
-        final String desiredVersion = activeDependencies[candidateDependency]!;
-        final String resolvedVersion = tree.versionFor(foundPackage);
-        globals.logger.printError(
-          'Downgrade detected when adding $foundPackage: $desiredVersion '
-          '(which resolved to $resolvedVersion)',
-        );
-        globals.logger.printError(errorBuffer.toString());
-
-        quarantinedDependencies.add(candidateDependency);
-        activeDependencies.remove(candidateDependency);
-      }
-    }
-
-    if (quarantinedDependencies.isNotEmpty) {
-      globals.logger.printError('The following packages caused a downgrade:');
-      for (final PubspecDependency dep in quarantinedDependencies) {
-        globals.logger.printError('  - ${dep.name}');
-      }
-    }
-
-    await Future.wait(<Future<FileSystemEntity>>[
-      tempDir.delete(recursive: true),
-      temporaryFlutterSdk.delete(recursive: true),
-    ]);
   }
 
   bool _upgradePubspecs({
