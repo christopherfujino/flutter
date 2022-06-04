@@ -746,6 +746,8 @@ class UpdatePackagesCommand extends FlutterCommand {
       });
     }
 
+    dependencies = dependencies.toList()..sort();
+
     if (dependencies.isEmpty) {
       globals.printStatus('\tpackage:$packageName does not have any dependencies\n');
       return;
@@ -767,9 +769,15 @@ class UpdatePackagesCommand extends FlutterCommand {
     required PackageConfig packageConfig,
     Set<String>? packageDenyList,
   }) async {
-    globals.printStatus(
-      'package:$packageName is resolved as ${tree.versionFor(packageName)}',
-    );
+    if (kManuallyPinnedDependencies.containsKey(packageName)) {
+      globals.printStatus(
+        'package:$packageName is ${tree.versionFor(packageName)} (because it is manually pinned)',
+      );
+    } else {
+      globals.printStatus(
+        'package:$packageName is resolved as ${tree.versionFor(packageName)}',
+      );
+    }
 
     final Set<String> dependents = tree.getDependents(packageName).toSet();
     // Remove specialDependencies
