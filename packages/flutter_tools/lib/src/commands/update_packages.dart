@@ -706,21 +706,77 @@ class UpdatePackagesCommand extends FlutterCommand {
     }
   }
 
+  /// Describe dependencies and dependents of a package that may constrain its version.
   Future<void> _describePackage({
+    required String packageName,
     required PubDependencyTree tree,
     required PackageConfig packageConfig,
+    Set<String>? packageDenyList,
+  }) async {
+    await _describeDependents(
+      packageName: packageName,
+      tree: tree,
+      packageConfig: packageConfig,
+      packageDenyList: packageDenyList,
+    );
+    await _describeDependencies(
+      packageName: packageName,
+      tree: tree,
+      packageConfig: packageConfig,
+      packageDenyList: packageDenyList,
+    );
+  }
+
+  Future<void> _describeDependencies({
     required String packageName,
+    required PubDependencyTree tree,
+    required PackageConfig packageConfig,
+    Set<String>? packageDenyList,
+  }) async {
+    Iterable<String> dependencies = tree.getTransitiveDependenciesFor(
+      packageName,
+      seen: <String>{},
+      exclude: <String>{},
+    );
+
+    // Remove specialDependencies
+    if (packageDenyList != null) {
+      dependencies = dependencies.where((String name) {
+        return !packageDenyList.contains(name);
+      });
+    }
+
+    if (dependencies.isEmpty) {
+      globals.printStatus('\tpackage:$packageName does not have any dependencies\n');
+      return;
+    }
+    globals.printStatus('package:$packageName depends on:');
+    for (final String dependency in dependencies) {
+      await _describeDependents(
+        packageName: dependency,
+        tree: tree,
+        packageConfig: packageConfig,
+        packageDenyList: packageDenyList,
+      );
+      globals.printStatus('');
+    }
+  }
+  Future<void> _describeDependents({
+    required String packageName,
+    required PubDependencyTree tree,
+    required PackageConfig packageConfig,
     Set<String>? packageDenyList,
   }) async {
     globals.printStatus(
       'package:$packageName is resolved as ${tree.versionFor(packageName)}',
     );
-    final Set<String> dependees = tree.getDependees(packageName).toSet();
+
+    final Set<String> dependents = tree.getDependents(packageName).toSet();
     // Remove specialDependencies
     if (packageDenyList != null) {
-      dependees.removeWhere((String dependee) => packageDenyList.contains(dependee));
+      dependents.removeWhere((String dependee) => packageDenyList.contains(dependee));
     }
-    if (dependees.isEmpty) {
+    if (dependents.isEmpty) {
       globals.printStatus('\tNo packages constrain package:$packageName.\n');
       return;
     }
@@ -730,10 +786,10 @@ class UpdatePackagesCommand extends FlutterCommand {
       nameToPackage[package.name] = package;
     }
 
-    for (final String dependee in dependees) {
-      final Package? package = nameToPackage[dependee];
+    for (final String dependent in dependents) {
+      final Package? package = nameToPackage[dependent];
       if (package == null) {
-        globals.printStatus('\tpackage:$dependee not found in pub_cache, skipping...');
+        globals.printError('\tpackage:$dependent not found in pub_cache, skipping...');
         continue;
       }
       final Directory root = globals.fs.directory(package.root);
@@ -753,15 +809,15 @@ class UpdatePackagesCommand extends FlutterCommand {
 
       if (constraint == null) {
         throw StateError(
-            'Could not find dependency $packageName in $pubspecFile');
+          'Could not find dependency $packageName in $pubspecFile',
+        );
       }
       // [root.basename] will be the pub-cache dir, with encodes the package
       // name and its version
       globals.printStatus(
-          '\t${root.basename} constrains $packageName with $constraint');
+        '\t${root.basename} constrains $packageName with $constraint',
+      );
     }
-    // Extra newline between packages
-    globals.printStatus('');
   }
 }
 
@@ -1744,14 +1800,14 @@ class PubDependencyTree {
   }
 
   /// Get the set of packages that depend on [package].
-  Set<String> getDependees(String package) {
-    final Set<String> dependees = <String>{};
+  Set<String> getDependents(String package) {
+    final Set<String> dependents = <String>{};
     for (final MapEntry<String, Set<String>> entry in _dependencyTree.entries) {
       if (entry.value.contains(package)) {
-        dependees.add(entry.key);
+        dependents.add(entry.key);
       }
     }
-    return dependees;
+    return dependents;
   }
 
   /// The version that a particular package ended up with.
