@@ -707,6 +707,11 @@ class UpdatePackagesCommand extends FlutterCommand {
   }
 
   /// Describe dependencies and dependents of a package that may constrain its version.
+  ///
+  /// Since pub resolves each dependency in a package to a single version, no
+  /// matter how many times it is depended on, a particular package can be
+  /// constrained both by it dependents (packages that depend on it) and its
+  /// dependencies (packages it depends on).
   Future<void> _describePackage({
     required String packageName,
     required PubDependencyTree tree,
