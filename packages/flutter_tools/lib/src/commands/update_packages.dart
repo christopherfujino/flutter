@@ -257,6 +257,7 @@ class UpdatePackagesCommand extends FlutterCommand {
         tree: tree!,
         packageConfig: packageConfig,
         packageName: describePackage,
+        packageDenyList: specialDependencies,
       );
       return FlutterCommandResult.success();
     }
@@ -712,7 +713,7 @@ class UpdatePackagesCommand extends FlutterCommand {
     required String packageName,
     required PubDependencyTree tree,
     required PackageConfig packageConfig,
-    Set<String>? packageDenyList,
+    required Set<String> packageDenyList,
   }) async {
     await _describeDependents(
       packageName: packageName,
@@ -732,7 +733,7 @@ class UpdatePackagesCommand extends FlutterCommand {
     required String packageName,
     required PubDependencyTree tree,
     required PackageConfig packageConfig,
-    Set<String>? packageDenyList,
+    required Set<String> packageDenyList,
   }) async {
     Iterable<String> dependencies = tree.getTransitiveDependenciesFor(
       packageName,
