@@ -796,6 +796,11 @@ class UpdatePackagesCommand extends FlutterCommand {
       nameToPackage[package.name] = package;
     }
 
+    semver.Version? min;
+    List<String> minConstrainers = <String>[];
+    semver.Version? max;
+    List<String> maxConstrainers = <String>[];
+
     for (final String dependent in dependents) {
       final Package? package = nameToPackage[dependent];
       if (package == null) {
@@ -822,12 +827,37 @@ class UpdatePackagesCommand extends FlutterCommand {
           'Could not find dependency $packageName in $pubspecFile',
         );
       }
+
+      if (constraint is! String) {
+        throw StateError('Unrecognized constraint $constraint ${constraint.runtimeType}');
+      }
+      final semver.VersionConstraint constraintVersion = semver.VersionConstraint.parse(constraint);
+      if (constraintVersion is! semver.VersionRange) {
+        throw StateError('$constraint is a ${constraint.runtimeType}');
+      }
+
+      if (min == null || min > constraintVersion.min!){
+        min = constraintVersion.min;
+        minConstrainers = <String>[dependent];
+      } else if (min == constraintVersion.min!) {
+        minConstrainers.add(dependent);
+      }
+
+      if (max == null || max > constraintVersion.max!){
+        max = constraintVersion.max;
+        maxConstrainers = <String>[dependent];
+      } else if (max == constraintVersion.max!) {
+        maxConstrainers.add(dependent);
+      }
+
       // [root.basename] will be the pub-cache dir, with encodes the package
       // name and its version
       globals.printStatus(
         '\t${root.basename} constrains $packageName with $constraint',
       );
     }
+    globals.printStatus('\n\tmin $min constrained by ${minConstrainers.join(', ')}');
+    globals.printStatus('\tmax $max constrained by ${maxConstrainers.join(', ')}');
   }
 }
 
