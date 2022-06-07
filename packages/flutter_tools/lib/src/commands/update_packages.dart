@@ -762,7 +762,6 @@ class UpdatePackagesCommand extends FlutterCommand {
         packageConfig: packageConfig,
         packageDenyList: packageDenyList,
       );
-      globals.printStatus('');
     }
   }
   Future<void> _describeDependents({
@@ -857,7 +856,7 @@ class UpdatePackagesCommand extends FlutterCommand {
       );
     }
     globals.printStatus('\n\tmin $min constrained by ${minConstrainers.join(', ')}');
-    globals.printStatus('\tmax $max constrained by ${maxConstrainers.join(', ')}');
+    globals.printStatus('\tmax $max constrained by ${maxConstrainers.join(', ')}\n');
   }
 }
 
