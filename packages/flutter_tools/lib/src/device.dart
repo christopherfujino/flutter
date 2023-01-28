@@ -750,7 +750,6 @@ class DebuggingOptions {
     this.webLaunchUrl,
     this.vmserviceOutFile,
     this.fastStart = false,
-    this.nullAssertions = false,
     this.nativeNullAssertions = false,
     this.enableImpeller = false,
     this.uninstallFirst = false,
@@ -842,7 +841,6 @@ class DebuggingOptions {
     required this.webLaunchUrl,
     required this.vmserviceOutFile,
     required this.fastStart,
-    required this.nullAssertions,
     required this.nativeNullAssertions,
     required this.enableImpeller,
     required this.uninstallFirst,
@@ -913,8 +911,6 @@ class DebuggingOptions {
   /// A file where the VM Service URL should be written after the application is started.
   final String? vmserviceOutFile;
   final bool fastStart;
-
-  final bool nullAssertions;
 
   /// Additional null runtime checks inserted for web applications.
   ///
@@ -1009,7 +1005,6 @@ class DebuggingOptions {
     'webLaunchUrl': webLaunchUrl,
     'vmserviceOutFile': vmserviceOutFile,
     'fastStart': fastStart,
-    'nullAssertions': nullAssertions,
     'nativeNullAssertions': nativeNullAssertions,
     'enableImpeller': enableImpeller,
     'serveObservatory': serveObservatory,
@@ -1056,7 +1051,6 @@ class DebuggingOptions {
       webLaunchUrl: json['webLaunchUrl'] as String?,
       vmserviceOutFile: json['vmserviceOutFile'] as String?,
       fastStart: json['fastStart']! as bool,
-      nullAssertions: json['nullAssertions']! as bool,
       nativeNullAssertions: json['nativeNullAssertions']! as bool,
       enableImpeller: (json['enableImpeller'] as bool?) ?? false,
       uninstallFirst: (json['uninstallFirst'] as bool?) ?? false,
@@ -1134,13 +1128,9 @@ class NoOpDeviceLogReader implements DeviceLogReader {
   void dispose() { }
 }
 
-/// Append --null_assertions to any existing Dart VM flags if
-/// [debuggingOptions.nullAssertions] is true.
 String computeDartVmFlags(DebuggingOptions debuggingOptions) {
   return <String>[
     if (debuggingOptions.dartFlags.isNotEmpty)
       debuggingOptions.dartFlags,
-    if (debuggingOptions.nullAssertions)
-      '--null_assertions',
   ].join(',');
 }

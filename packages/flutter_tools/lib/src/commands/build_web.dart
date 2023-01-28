@@ -30,7 +30,6 @@ class BuildWebCommand extends BuildSubCommand {
     usesDartDefineOption();
     usesWebRendererOption();
     addEnableExperimentation(hide: !verboseHelp);
-    addNullSafetyModeOptions(hide: !verboseHelp);
     addNativeNullAssertions();
     argParser.addFlag('csp',
       negatable: false,
